@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "229617385910",
+    "project_id": "fir-shop-1b378",
+    "storage_bucket": "fir-shop-1b378.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229617385910:android:19185ab8f4102eb2010117",
+        "android_client_info": {
+          "package_name": "com.alan.shop"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "229617385910-j3ssj2er4mr72jne6subppjeubcc4aqr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0bDjNABAhdQAY5h6SINv0ljEALWUtVRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "229617385910-j3ssj2er4mr72jne6subppjeubcc4aqr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
