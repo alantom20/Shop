@@ -22,4 +22,11 @@
     <style name="Theme.Shop.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="Theme.Shop.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="SignUp" parent="FirebaseUI">
+        <item name="colorPrimary">@color/material_blue_200</item>
+        <item name="colorPrimaryVariant">@color/material_green_700</item>
+        <item name="colorOnPrimary">@color/material_orange_500</item>
+        <item name="colorControlActivated">@color/material_blue_200</item>
+    </style>
 </resources>
