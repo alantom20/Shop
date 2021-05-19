@@ -4,14 +4,19 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.firebase.ui.auth.AuthUI
+import com.firebase.ui.firestore.FirestoreRecyclerAdapter
+import com.firebase.ui.firestore.FirestoreRecyclerOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.android.synthetic.main.content_main.*
 import java.util.*
 
@@ -20,7 +25,8 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
 
     private val RC_SIGNIN: Int = 100
     val TAG =  MainActivity::class.java.simpleName
-
+    private lateinit var adapter : FirestoreRecyclerAdapter<Item,ItemHolder>
+    var categories = mutableListOf<Category>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -38,6 +44,99 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
                     }
             }
         }
+        FirebaseFirestore.getInstance().collection("categories")
+            .get().addOnCompleteListener { task->
+                if(task.isSuccessful){
+                    categories.add(0, Category("","不分類"))
+                    task.result?.let {
+                        for (doc in it){
+                            categories.add(Category(doc.id,doc.data.get("name").toString()))
+                        }
+                        spinner.adapter = ArrayAdapter<Category>(
+                            this@MainActivity,
+                            android.R.layout.simple_spinner_item,
+                            categories).apply {
+                            setDropDownViewResource(android.R.layout.simple_dropdown_item_1line)
+                        }
+                        spinner.setSelection(0,false)
+                        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+                            override fun onItemSelected(
+                                parent: AdapterView<*>?,
+                                view: View?,
+                                position: Int,
+                                id: Long
+                            ) {
+                                setupAdapter()
+                            }
+
+                            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+                            }
+
+                        }
+
+                    }
+                }
+            }
+
+
+
+
+        //setupRecyclerView
+        recycler.setHasFixedSize(true)
+        recycler.layoutManager = LinearLayoutManager(this)
+        setupAdapter()
+
+
+
+
+    }
+
+    private fun setupAdapter() {
+        val selected = spinner.selectedItemPosition
+        var query = if(selected > 0){
+            adapter.stopListening()
+           FirebaseFirestore.getInstance()
+                .collection("items")
+                .whereEqualTo("category",categories.get(selected).id)
+                .orderBy("viewCount", Query.Direction.DESCENDING)
+                .limit(10)
+        }else{
+           FirebaseFirestore.getInstance()
+                .collection("items")
+                .orderBy("viewCount", Query.Direction.DESCENDING)
+                .limit(10)
+        }
+
+
+        val options = FirestoreRecyclerOptions.Builder<Item>()
+            .setQuery(query, Item::class.java)
+            .build()
+        adapter = object : FirestoreRecyclerAdapter<Item, ItemHolder>(options) {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
+                val view =
+                    LayoutInflater.from(parent.context).inflate(R.layout.item_row, parent, false)
+                return ItemHolder(view)
+            }
+
+            override fun onBindViewHolder(holder: ItemHolder, position: Int, item: Item) {
+                item.id = snapshots.getSnapshot(position).id
+                holder.bindTo(item)
+                holder.itemView.setOnClickListener {
+                    val intent = Intent(this@MainActivity, DetailActivity::class.java)
+                    intent.putExtra("ITEM", item)
+                    startActivity(intent)
+                    itemClicked(item, position)
+                }
+            }
+
+        }
+        recycler.adapter = adapter
+        adapter.startListening()
+    }
+
+    private fun itemClicked(item: Item, position: Int) {
+        Log.d(TAG, "itemClicked: " + item.title)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -90,7 +189,7 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
         Log.d(TAG, "onAuthStateChanged: " + user?.uid)
         if(user !=null){
             user_info.setText("${user.email} / ${user.isEmailVerified}")
-            verify_email.visibility = if(user.isEmailVerified) View.GONE else View.VISIBLE
+         //   verify_email.visibility = if(user.isEmailVerified) View.GONE else View.VISIBLE
         }else{
             user_info.setText("Not Login")
             verify_email.visibility = View.GONE
@@ -101,10 +200,12 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
     override fun onStart() {
         super.onStart()
         FirebaseAuth.getInstance().addAuthStateListener(this)
+        adapter.startListening()
     }
 
     override fun onStop() {
         super.onStop()
         FirebaseAuth.getInstance().removeAuthStateListener(this)
+        adapter.stopListening()
     }
 }
