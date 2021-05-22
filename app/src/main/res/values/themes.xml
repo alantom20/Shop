@@ -29,4 +29,7 @@
         <item name="colorOnPrimary">@color/material_orange_500</item>
         <item name="colorControlActivated">@color/material_blue_200</item>
     </style>
+    <style name="watch_checkbox">
+        <item name="android:button">@drawable/watch_status</item>
+    </style>
 </resources>

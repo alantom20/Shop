@@ -1,6 +1,5 @@
 package com.alan.shop
 
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -10,22 +9,28 @@ import android.widget.ArrayAdapter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.alan.shop.data.ItemDatabase
+import com.alan.shop.model.Category
+import com.alan.shop.model.Item
+import com.alan.shop.view.ItemHolder
+import com.alan.shop.view.ItemViewModel
 import com.firebase.ui.auth.AuthUI
-import com.firebase.ui.firestore.FirestoreRecyclerAdapter
-import com.firebase.ui.firestore.FirestoreRecyclerOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.android.synthetic.main.content_main.*
 import java.util.*
 
 
 class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
 
+    private lateinit var viewModel: ItemViewModel
     private val RC_SIGNIN: Int = 100
     val TAG =  MainActivity::class.java.simpleName
-    private lateinit var adapter : FirestoreRecyclerAdapter<Item,ItemHolder>
+   // private lateinit var adapter : FirestoreRecyclerAdapter<Item,ItemHolder>
+    lateinit var adapter : ItemAdapter
     var categories = mutableListOf<Category>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,8 +42,8 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
                     .setAction("Action", null).show()
         }
         verify_email.setOnClickListener {
-            FirebaseAuth.getInstance().currentUser.sendEmailVerification()
-                .addOnCompleteListener { task->
+            FirebaseAuth.getInstance().currentUser?.sendEmailVerification()
+                ?.addOnCompleteListener { task->
                     if(task.isSuccessful){
                         Snackbar.make(it,"Verify email sent",Snackbar.LENGTH_LONG).show()
                     }
@@ -66,9 +71,10 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
                                 position: Int,
                                 id: Long
                             ) {
-                                setupAdapter()
-                            }
+//                                   setupAdapter()
 
+                                viewModel.setCategory(categories.get(position).id)
+                            }
                             override fun onNothingSelected(parent: AdapterView<*>?) {
 
                             }
@@ -77,7 +83,9 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
 
                     }
                 }
+
             }
+
 
 
 
@@ -85,58 +93,47 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
         //setupRecyclerView
         recycler.setHasFixedSize(true)
         recycler.layoutManager = LinearLayoutManager(this)
-        setupAdapter()
+        adapter = ItemAdapter(mutableListOf<Item>())
+        recycler.adapter = adapter
+        viewModel = ViewModelProvider(this).get(ItemViewModel::class.java)
+        viewModel.getItems().observe(this, androidx.lifecycle.Observer {
+            Log.d(TAG, "onCreate:${it.size} ")
+            adapter.items = it
+            adapter.notifyDataSetChanged()
 
+        })
 
+            //setupAdapter()
 
+    }
+
+    inner class ItemAdapter(var items:List<Item>) : RecyclerView.Adapter<ItemHolder>(){
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
+           return  ItemHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_row,parent,false))
+        }
+
+        override fun onBindViewHolder(holder: ItemHolder, position: Int) {
+            holder.bindTo(items.get(position))
+            holder.itemView.setOnClickListener {
+                itemClicked(items.get(position),position)
+            }
+        }
+
+        override fun getItemCount(): Int {
+            return items.size
+        }
 
     }
 
     private fun setupAdapter() {
-        val selected = spinner.selectedItemPosition
-        var query = if(selected > 0){
-            adapter.stopListening()
-           FirebaseFirestore.getInstance()
-                .collection("items")
-                .whereEqualTo("category",categories.get(selected).id)
-                .orderBy("viewCount", Query.Direction.DESCENDING)
-                .limit(10)
-        }else{
-           FirebaseFirestore.getInstance()
-                .collection("items")
-                .orderBy("viewCount", Query.Direction.DESCENDING)
-                .limit(10)
-        }
 
-
-        val options = FirestoreRecyclerOptions.Builder<Item>()
-            .setQuery(query, Item::class.java)
-            .build()
-        adapter = object : FirestoreRecyclerAdapter<Item, ItemHolder>(options) {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemHolder {
-                val view =
-                    LayoutInflater.from(parent.context).inflate(R.layout.item_row, parent, false)
-                return ItemHolder(view)
-            }
-
-            override fun onBindViewHolder(holder: ItemHolder, position: Int, item: Item) {
-                item.id = snapshots.getSnapshot(position).id
-                holder.bindTo(item)
-                holder.itemView.setOnClickListener {
-                    val intent = Intent(this@MainActivity, DetailActivity::class.java)
-                    intent.putExtra("ITEM", item)
-                    startActivity(intent)
-                    itemClicked(item, position)
-                }
-            }
-
-        }
-        recycler.adapter = adapter
-        adapter.startListening()
     }
 
     private fun itemClicked(item: Item, position: Int) {
         Log.d(TAG, "itemClicked: " + item.title)
+        val intent = Intent(this,DetailActivity::class.java)
+        intent.putExtra("ITEM",item)
+        startActivity(intent)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -200,12 +197,12 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
     override fun onStart() {
         super.onStart()
         FirebaseAuth.getInstance().addAuthStateListener(this)
-        adapter.startListening()
+       // adapter.startListening()
     }
 
     override fun onStop() {
         super.onStop()
         FirebaseAuth.getInstance().removeAuthStateListener(this)
-        adapter.stopListening()
+        //adapter.stopListening()
     }
 }
