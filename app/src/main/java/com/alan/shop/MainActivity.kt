@@ -29,7 +29,6 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
     private lateinit var viewModel: ItemViewModel
     private val RC_SIGNIN: Int = 100
     val TAG =  MainActivity::class.java.simpleName
-   // private lateinit var adapter : FirestoreRecyclerAdapter<Item,ItemHolder>
     lateinit var adapter : ItemAdapter
     var categories = mutableListOf<Category>()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +70,6 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
                                 position: Int,
                                 id: Long
                             ) {
-//                                   setupAdapter()
 
                                 viewModel.setCategory(categories.get(position).id)
                             }
@@ -102,8 +100,6 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
             adapter.notifyDataSetChanged()
 
         })
-
-            //setupAdapter()
 
     }
 
@@ -167,9 +163,6 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
                         .setTheme(R.style.SignUp)
                         .build(),
                     RC_SIGNIN)
-              /*  startActivityForResult(
-                    Intent(this,SignInActivity::class.java),
-                    RC_SIGNIN)*/
                 true
             }
             R.id.sign_out ->{
@@ -197,12 +190,11 @@ class MainActivity : AppCompatActivity(),FirebaseAuth.AuthStateListener {
     override fun onStart() {
         super.onStart()
         FirebaseAuth.getInstance().addAuthStateListener(this)
-       // adapter.startListening()
     }
 
     override fun onStop() {
         super.onStop()
         FirebaseAuth.getInstance().removeAuthStateListener(this)
-        //adapter.stopListening()
+
     }
 }
